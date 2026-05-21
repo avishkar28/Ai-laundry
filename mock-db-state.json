@@ -1,0 +1,189 @@
+{
+  "timestamp": "2026-05-20T13:19:32.215Z",
+  "customers": [
+    {
+      "id": "1c2a47e8-5ea8-4ea5-9077-26dcb69df0d7",
+      "name": "Rahul Sharma",
+      "phone": "9876543210",
+      "email": "rahul@example.com",
+      "address": "123 MG Road",
+      "city": "Bangalore",
+      "pincode": "560001",
+      "createdAt": "2026-05-20T13:19:32.211Z",
+      "updatedAt": "2026-05-20T13:19:32.211Z"
+    }
+  ],
+  "orders": [
+    {
+      "id": "00263768-6424-46ae-8532-ac4d0c53283d",
+      "orderId": "ORD-50001",
+      "status": "Picked Up",
+      "customerId": "1c2a47e8-5ea8-4ea5-9077-26dcb69df0d7",
+      "serviceType": "Wash & Fold",
+      "totalPrice": 215,
+      "pickupDate": "2026-05-21",
+      "deliveryDate": "2026-05-25",
+      "address": "123 MG Road, Bangalore",
+      "specialInstructions": "Gentle wash, no bleach",
+      "createdAt": "2026-05-20T13:19:32.212Z",
+      "updatedAt": "2026-05-20T13:19:32.214Z",
+      "completedAt": null
+    }
+  ],
+  "orderItems": [
+    {
+      "id": "d6137da7-90cc-4185-bc17-8cf3c7d32177",
+      "orderId": "00263768-6424-46ae-8532-ac4d0c53283d",
+      "itemType": "Shirt",
+      "quantity": 5,
+      "weightKg": 2.5,
+      "serviceType": "Wash & Fold",
+      "price": 125,
+      "createdAt": "2026-05-20T13:19:32.213Z",
+      "updatedAt": "2026-05-20T13:19:32.213Z"
+    },
+    {
+      "id": "257a71f4-1c75-436a-85fa-34a08e4c760a",
+      "orderId": "00263768-6424-46ae-8532-ac4d0c53283d",
+      "itemType": "Pants",
+      "quantity": 3,
+      "weightKg": 1.8,
+      "serviceType": "Wash & Fold",
+      "price": 90,
+      "createdAt": "2026-05-20T13:19:32.213Z",
+      "updatedAt": "2026-05-20T13:19:32.213Z"
+    }
+  ],
+  "staff": [
+    {
+      "id": "a0718bb8-90e4-4938-86d7-3cb6bf626c76",
+      "name": "Vikram Patel",
+      "phone": "9988776655",
+      "role": "driver",
+      "performanceScore": 4.8,
+      "assignedArea": "North Bangalore",
+      "status": "available",
+      "createdAt": "2026-05-20T13:19:32.207Z",
+      "updatedAt": "2026-05-20T13:19:32.207Z"
+    },
+    {
+      "id": "c7ba9259-8f7c-4510-bc72-d6e76c928560",
+      "name": "Anjali Desai",
+      "phone": "8877665544",
+      "role": "driver",
+      "performanceScore": 4.6,
+      "assignedArea": "South Bangalore",
+      "status": "available",
+      "createdAt": "2026-05-20T13:19:32.207Z",
+      "updatedAt": "2026-05-20T13:19:32.207Z"
+    },
+    {
+      "id": "d9ce5e4f-5b51-45e8-bbd4-6f18f7045722",
+      "name": "Rajesh Kumar",
+      "phone": "7766554433",
+      "role": "washer",
+      "performanceScore": 4.9,
+      "assignedArea": "Central",
+      "status": "available",
+      "createdAt": "2026-05-20T13:19:32.207Z",
+      "updatedAt": "2026-05-20T13:19:32.207Z"
+    },
+    {
+      "id": "c538ef08-0eea-4500-9f12-ff75191b917b",
+      "name": "Priya Singh",
+      "phone": "6655443322",
+      "role": "qc_specialist",
+      "performanceScore": 4.7,
+      "assignedArea": "All",
+      "status": "available",
+      "createdAt": "2026-05-20T13:19:32.207Z",
+      "updatedAt": "2026-05-20T13:19:32.207Z"
+    },
+    {
+      "id": "e4c0d37d-9b3a-4b19-a961-f830a354bbac",
+      "name": "Amit Sharma",
+      "phone": "5544332211",
+      "role": "folder",
+      "performanceScore": 4.5,
+      "assignedArea": "East Bangalore",
+      "status": "available",
+      "createdAt": "2026-05-20T13:19:32.207Z",
+      "updatedAt": "2026-05-20T13:19:32.207Z"
+    },
+    {
+      "id": "1c6c47d0-09d6-404f-9f97-69b4037bb2d0",
+      "name": "Maya Verma",
+      "phone": "4433221100",
+      "role": "ironer",
+      "performanceScore": 4.8,
+      "assignedArea": "West Bangalore",
+      "status": "available",
+      "createdAt": "2026-05-20T13:19:32.207Z",
+      "updatedAt": "2026-05-20T13:19:32.207Z"
+    }
+  ],
+  "staffAssignments": [
+    {
+      "id": "d7d17b22-3f12-410d-9da0-dd89bf712367",
+      "orderId": "00263768-6424-46ae-8532-ac4d0c53283d",
+      "staffId": "a0718bb8-90e4-4938-86d7-3cb6bf626c76",
+      "taskType": "pickup",
+      "status": "assigned",
+      "notes": "Assigned for pickup at 2PM",
+      "createdAt": "2026-05-20T13:19:32.213Z",
+      "updatedAt": "2026-05-20T13:19:32.213Z"
+    }
+  ],
+  "workflowHistory": [
+    {
+      "id": "23c9b4f3-74f4-4608-affb-cd696905ee02",
+      "orderId": "00263768-6424-46ae-8532-ac4d0c53283d",
+      "eventType": "order_created",
+      "statusFrom": null,
+      "statusTo": "Created",
+      "staffId": null,
+      "notes": "Order placed",
+      "timestamp": "2026-05-20T13:19:32.212Z"
+    },
+    {
+      "id": "41725e66-698e-4439-a625-efff504e79f3",
+      "orderId": "00263768-6424-46ae-8532-ac4d0c53283d",
+      "eventType": "task_assigned",
+      "statusFrom": null,
+      "statusTo": null,
+      "staffId": "a0718bb8-90e4-4938-86d7-3cb6bf626c76",
+      "notes": "pickup assigned to Vikram Patel",
+      "timestamp": "2026-05-20T13:19:32.213Z"
+    },
+    {
+      "id": "ee30bd9d-3a24-416f-a415-43d4949b2e15",
+      "orderId": "00263768-6424-46ae-8532-ac4d0c53283d",
+      "eventType": "status_change",
+      "statusFrom": "Created",
+      "statusTo": "Pending Pickup",
+      "staffId": "a0718bb8-90e4-4938-86d7-3cb6bf626c76",
+      "notes": "Driver assigned",
+      "timestamp": "2026-05-20T13:19:32.213Z"
+    },
+    {
+      "id": "64ffe1cc-5ae7-450d-a1f9-7c74bf98b833",
+      "orderId": "00263768-6424-46ae-8532-ac4d0c53283d",
+      "eventType": "status_change",
+      "statusFrom": "Pending Pickup",
+      "statusTo": "Pickup Assigned",
+      "staffId": "a0718bb8-90e4-4938-86d7-3cb6bf626c76",
+      "notes": "",
+      "timestamp": "2026-05-20T13:19:32.213Z"
+    },
+    {
+      "id": "65052277-63ab-4519-a129-d6a830d89a8e",
+      "orderId": "00263768-6424-46ae-8532-ac4d0c53283d",
+      "eventType": "status_change",
+      "statusFrom": "Pickup Assigned",
+      "statusTo": "Picked Up",
+      "staffId": "a0718bb8-90e4-4938-86d7-3cb6bf626c76",
+      "notes": "Collected from customer at 2:15 PM",
+      "timestamp": "2026-05-20T13:19:32.214Z"
+    }
+  ]
+}

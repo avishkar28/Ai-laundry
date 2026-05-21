@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>FreshFold — Laundry Management System</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🫧</text></svg>"/>
+  <link rel="stylesheet" href="style.css"/>
+  <!-- AI Tutorial System -->
+  <link rel="stylesheet" href="ai-system/tutorial-styles.css"/>
+  <!-- Offline fonts (Inter + Font Awesome) — no internet required -->
+  <link rel="stylesheet" href="assets/fa/css/all.min.css"/>
+</head>
+<body>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Soundbox -->
+<div id="soundbox-badge" class="hidden">
+  <div class="soundbox-inner">
+    <i class="fas fa-volume-up"></i>
+    <span id="soundbox-text">Order Received!</span>
+  </div>
+</div>
+
+<!-- AI Modal -->
+<div id="ai-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="ai-badge"><i class="fas fa-brain"></i> AI Insights</div>
+      <button class="modal-close" onclick="closeAIModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="ai-loader" class="ai-loader">
+        <div class="ai-dots"><span></span><span></span><span></span></div>
+        <p>Analyzing your laundry data&hellip;</p>
+      </div>
+      <div id="ai-content" class="ai-content hidden">
+        <div id="ai-summary-text" class="ai-summary-text"></div>
+        <div class="ai-stats-grid" id="ai-stats-grid"></div>
+        <div class="ai-tip-box" id="ai-tip-box"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-refresh-ai" onclick="refreshAIInsights()"><i class="fas fa-sync-alt"></i> Regenerate Insights</button>
+    </div>
+  </div>
+</div>
+
+<!-- LangGraph Conversation Modal -->
+<div id="conversation-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width: 500px; height: 600px; display: flex; flex-direction: column;">
+    <div class="modal-header">
+      <div class="ai-badge"><i class="fas fa-comments"></i> AI Conversation</div>
+      <button class="modal-close" onclick="closeConversation()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 16px;">
+      <div id="conversation-history" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+        <!-- Messages will be added here -->
+      </div>
+    </div>
+    <div style="padding: 12px; border-top: 1px solid #e5e7eb; background: white;">
+      <div style="display: flex; gap: 8px;">
+        <input id="conversation-input" type="text" placeholder="Ask me anything about your laundry..." 
+               style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;"
+               onkeypress="if(event.key==='Enter') sendConversationMessage()"/>
+        <button onclick="sendConversationMessage()" 
+                style="background: #6366f1; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">
+          <i class="fas fa-send"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Overlay + Drawer -->
+<div id="settings-overlay" class="settings-overlay hidden"></div>
+<aside id="settings-drawer" class="settings-drawer">
+  <div class="settings-header">
+    <div class="settings-title"><i class="fas fa-sliders-h"></i> Notification Settings</div>
+    <button class="modal-close" onclick="closeSettings()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="settings-body">
+    <!-- Master Notifications Toggle -->
+    <div class="settings-section" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; border-radius: 10px; margin-bottom: 16px;">
+      <div class="settings-section-header" style="border: none;">
+        <div class="settings-section-title" style="color: white;"><i class="fas fa-bell"></i> All Notifications</div>
+        <label class="toggle-switch" id="notifications-master-container">
+          <input type="checkbox" id="toggle-notifications-master" onchange="toggleNotifications()" checked/>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div style="font-size: 12px; color: rgba(255,255,255,0.9); padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2); margin-top: 8px; padding-top: 8px;">
+        Turn off to silence all popups, toasts, sounds, and voice alerts
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <div class="settings-section-title"><i class="fas fa-volume-up"></i> Voice Announcements</div>
+        <label class="toggle-switch"><input type="checkbox" id="toggle-voice-master" onchange="toggleMaster('voice')"/><span class="toggle-slider"></span></label>
+      </div>
+      <div id="voice-options" class="settings-options">
+        <div class="settings-row speed-row">
+          <span class="settings-label">Speaking Speed</span>
+          <div class="speed-btns">
+            <button class="speed-btn" data-speed="slow" onclick="setSpeed('slow')">Slow</button>
+            <button class="speed-btn" data-speed="normal" onclick="setSpeed('normal')">Normal</button>
+            <button class="speed-btn" data-speed="fast" onclick="setSpeed('fast')">Fast</button>
+          </div>
+        </div>
+        <div class="settings-divider">Announce when&hellip;</div>
+        <div class="settings-row"><div class="settings-cat-label"><span class="cat-emoji">&#128722;</span> Order Confirmations</div><label class="toggle-switch sm"><input type="checkbox" id="v-orders" onchange="toggleCat('voice','orders')"/><span class="toggle-slider"></span></label></div>
+        <div class="settings-row"><div class="settings-cat-label"><span class="cat-emoji">&#128663;</span> Driver Updates</div><label class="toggle-switch sm"><input type="checkbox" id="v-driver" onchange="toggleCat('voice','driver')"/><span class="toggle-slider"></span></label></div>
+        <div class="settings-row"><div class="settings-cat-label"><span class="cat-emoji">&#128179;</span> Payments Received</div><label class="toggle-switch sm"><input type="checkbox" id="v-payments" onchange="toggleCat('voice','payments')"/><span class="toggle-slider"></span></label></div>
+        <div class="settings-row"><div class="settings-cat-label"><span class="cat-emoji">&#9888;&#65039;</span> Delay &amp; Alerts</div><label class="toggle-switch sm"><input type="checkbox" id="v-alerts" onchange="toggleCat('voice','alerts')"/><span class="toggle-slider"></span></label></div>
+        <div class="settings-row"><div class="settings-cat-label"><span class="cat-emoji">&#128230;</span> Delivery &amp; Status</div><label class="toggle-switch sm"><input type="checkbox" id="v-updates" onchange="toggleCat('voice','updates')"/><span class="toggle-slider"></span></label></div>
+        <div class="settings-row"><div class="settings-cat-label"><span class="cat-emoji">&#127991;&#65039;</span> Promotions</div><label class="toggle-switch sm"><input type="checkbox" id="v-promos" onchange="toggleCat('voice','promos')"/><span class="toggle-slider"></span></label></div>
+        <button class="btn-test-voice" onclick="testVoice()"><i class="fas fa-play-circle"></i> Test Voice</button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <div class="settings-section-title"><i class="fas fa-bell"></i> Toast Notifications</div>
+        <label class="toggle-switch"><input type="checkbox" id="toggle-toast-master" onchange="toggleMaster('toast')"/><span class="toggle-slider"></span></label>
+      </div>
+      <div id="toast-options" class="settings-options">
+        <div class="settings-divider">Show notifications for&hellip;</div>
+        <div class="settings-row"><div class="settings-cat-label"><span class="cat-emoji">&#128722;</span> Order Confirmations</div><label class="toggle-switch sm"><input type="checkbox" id="t-orders" onchange="toggleCat('toast','orders')"/><span class="toggle-slider"></span></label></div>
+        <div class="settings-row"><div class="settings-cat-label"><span class="cat-emoji">&#128663;</span> Driver Updates</div><label class="toggle-switch sm"><input type="checkbox" id="t-driver" onchange="toggleCat('toast','driver')"/><span class="toggle-slider"></span></label></div>
+        <div class="settings-row"><div class="settings-cat-label"><span class="cat-emoji">&#128179;</span> Payments Received</div><label class="toggle-switch sm"><input type="checkbox" id="t-payments" onchange="toggleCat('toast','payments')"/><span class="toggle-slider"></span></label></div>
+        <div class="settings-row"><div class="settings-cat-label"><span class="cat-emoji">&#9888;&#65039;</span> Delay &amp; Alerts</div><label class="toggle-switch sm"><input type="checkbox" id="t-alerts" onchange="toggleCat('toast','alerts')"/><span class="toggle-slider"></span></label></div>
+        <div class="settings-row"><div class="settings-cat-label"><span class="cat-emoji">&#128230;</span> Delivery &amp; Status</div><label class="toggle-switch sm"><input type="checkbox" id="t-updates" onchange="toggleCat('toast','updates')"/><span class="toggle-slider"></span></label></div>
+        <div class="settings-row"><div class="settings-cat-label"><span class="cat-emoji">&#127991;&#65039;</span> Promotions</div><label class="toggle-switch sm"><input type="checkbox" id="t-promos" onchange="toggleCat('toast','promos')"/><span class="toggle-slider"></span></label></div>
+      </div>
+    </div>
+  </div>
+  <div class="settings-footer">
+    <span class="settings-saved" id="saved-indicator"></span>
+    <button class="btn-primary" style="font-size:14px;padding:10px 24px" onclick="closeSettings()">Done</button>
+  </div>
+</aside>
+
+<!-- ===== SIDEBAR ===== -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <i class="fas fa-soap"></i>
+    <span>Fresh<b>Fold</b></span>
+  </div>
+  <nav class="sidebar-nav">
+    <a class="nav-item active" data-page="dashboard" onclick="goPage('dashboard',this)">
+      <i class="fas fa-tachometer-alt"></i><span>Dashboard</span>
+    </a>
+    <a class="nav-item" data-page="orders" onclick="goPage('orders',this)">
+      <i class="fas fa-shopping-bag"></i><span>Orders</span>
+      <span class="nav-badge" id="badge-orders">0</span>
+    </a>
+    <a class="nav-item" data-page="inventory" onclick="goPage('inventory',this)">
+      <i class="fas fa-boxes"></i><span>Inventory</span>
+      <span class="nav-badge nav-badge-warn" id="badge-inventory">0</span>
+    </a>
+    <a class="nav-item" data-page="analytics" onclick="goPage('analytics',this)">
+      <i class="fas fa-chart-bar"></i><span>Analytics</span>
+    </a>
+    <a class="nav-item" data-page="staff" onclick="goPage('staff',this)">
+      <i class="fas fa-users"></i><span>Staff</span>
+    </a>
+    <a class="nav-item" data-page="customers" onclick="goPage('customers',this)">
+      <i class="fas fa-address-book"></i><span>Customers</span>
+      <span class="nav-badge nav-badge-cust" id="badge-customers">0</span>
+    </a>
+    <a class="nav-item nav-item-ai" data-page="ai" onclick="goPage('ai',this)">
+      <i class="fas fa-brain"></i><span>AI Hub</span>
+      <span class="nav-pulse-dot"></span>
+    </a>
+  </nav>
+  <div class="sidebar-bottom">
+    <button class="sidebar-settings-btn" onclick="openSettings()">
+      <i class="fas fa-cog"></i><span>Settings</span>
+    </button>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">AD</div>
+      <div>
+        <div class="sidebar-user-name">Admin</div>
+        <div class="sidebar-user-role">Manager</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ===== MAIN WRAP ===== -->
+<div class="main-wrap" id="main-wrap">
+  <header class="topbar">
+    <button class="topbar-menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <div class="topbar-actions">
+      <div class="topbar-search">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search orders, customers..." id="global-search" oninput="globalSearch(this.value)"/>
+      </div>
+      <button class="topbar-icon-btn ai-icon-btn" onclick="openAIModal('topbar')" title="AI Insights">
+        <i class="fas fa-brain"></i><span class="btn-pulse-dot"></span>
+      </button>
+      <button class="topbar-icon-btn" onclick="triggerTestNotif()" title="Notifications">
+        <i class="fas fa-bell"></i><span class="notif-dot"></span>
+      </button>
+      <button class="topbar-icon-btn" onclick="openSettings()"><i class="fas fa-sliders-h"></i></button>
+      <div class="topbar-avatar">AD</div>
+    </div>
+  </header>
+
+  <main class="content-area">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Good morning, Admin &#128075;</h1>
+          <p class="page-subtitle" id="dash-date"></p>
+        </div>
+        <button class="btn-primary" onclick="openAIModal('dashboard')"><i class="fas fa-brain"></i> AI Report</button>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-icon kpi-blue"><i class="fas fa-shopping-bag"></i></div><div class="kpi-body"><div class="kpi-val" id="kpi-orders">—</div><div class="kpi-label">Orders Today</div><div class="kpi-trend up" id="kpi-orders-trend"></div></div></div>
+        <div class="kpi-card"><div class="kpi-icon kpi-green"><i class="fas fa-rupee-sign"></i></div><div class="kpi-body"><div class="kpi-val" id="kpi-revenue">—</div><div class="kpi-label">Revenue Today</div><div class="kpi-trend up" id="kpi-revenue-trend"></div></div></div>
+        <div class="kpi-card"><div class="kpi-icon kpi-orange"><i class="fas fa-truck"></i></div><div class="kpi-body"><div class="kpi-val" id="kpi-pending">—</div><div class="kpi-label">Pending Pickups</div><div class="kpi-trend" id="kpi-pending-trend"></div></div></div>
+        <div class="kpi-card"><div class="kpi-icon kpi-purple"><i class="fas fa-star"></i></div><div class="kpi-body"><div class="kpi-val" id="kpi-rating">—</div><div class="kpi-label">Avg Satisfaction</div><div class="kpi-trend up" id="kpi-rating-trend"></div></div></div>
+      </div>
+      <div class="ai-banner" id="ai-banner">
+        <div class="ai-banner-icon"><div class="ai-pulse-ring"></div><i class="fas fa-brain"></i></div>
+        <div class="ai-banner-body">
+          <div class="ai-banner-label"><i class="fas fa-circle" style="color:#10b981;font-size:8px"></i> AI Daily Briefing — Live</div>
+          <div class="ai-banner-text" id="ai-banner-text">Analyzing today&#39;s operations...</div>
+        </div>
+        <button class="ai-banner-btn" onclick="openAIModal('dashboard')">Full Report <i class="fas fa-arrow-right"></i></button>
+      </div>
+      <div class="dash-grid">
+        <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-list"></i> Recent Orders</div><a class="card-link" onclick="goPage('orders',null)">View All &rarr;</a></div><div id="recent-orders-table"></div></div>
+        <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-magic"></i> AI Predictions</div><span class="live-badge"><span class="live-dot"></span>Live</span></div><div id="ai-predictions"></div></div>
+      </div>
+      <div class="quick-stats-row" id="quick-stats-row"></div>
+      <div class="smart-alerts-wrap">
+        <div class="smart-alerts-title"><i class="fas fa-brain" style="color:#6366f1"></i> AI Smart Alerts</div>
+        <div id="smart-alerts"></div>
+      </div>
+    </div>
+
+    <!-- ===== ORDERS ===== -->
+    <div id="page-orders" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">Orders</h1><p class="page-subtitle" id="orders-count-label">Loading...</p></div>
+        <div class="page-header-actions">
+          <button class="btn-outline-sm" onclick="openAIModal('orders')"><i class="fas fa-brain"></i> AI Analysis</button>
+          <button class="btn-outline-sm" onclick="readOrdersAloud()"><i class="fas fa-volume-up"></i> Read Orders</button>
+          <button class="btn-outline-sm" onclick="openPhotoScan()"><i class="fas fa-camera"></i> Photo Scan</button>
+          <button class="btn-primary" onclick="openVoiceInvoice()"><i class="fas fa-microphone"></i> Voice Invoice</button>
+        </div>
+      </div>
+      <div class="filter-tabs">
+        <button class="filter-tab active" onclick="filterOrders('all',this)">All</button>
+        <button class="filter-tab" onclick="filterOrders('pending',this)">Pending</button>
+        <button class="filter-tab" onclick="filterOrders('in-cleaning',this)">In Progress</button>
+        <button class="filter-tab" onclick="filterOrders('delivered',this)">Delivered</button>
+        <button class="filter-tab" onclick="filterOrders('cancelled',this)">Cancelled</button>
+      </div>
+      <div class="card"><div id="orders-table-wrap"></div></div>
+      <div id="orders-ai-bar"></div>
+    </div>
+
+    <!-- ===== INVENTORY ===== -->
+    <div id="page-inventory" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">Inventory</h1><p class="page-subtitle" id="inv-summary-label">Loading...</p></div>
+        <div class="page-header-actions">
+          <button class="btn-outline-sm" onclick="openAIModal('inventory')"><i class="fas fa-brain"></i> AI Reorder Plan</button>
+          <button class="btn-primary" onclick="showRestockModal()"><i class="fas fa-plus"></i> Restock</button>
+        </div>
+      </div>
+      <div id="inv-alert-strip"></div>
+      <div class="inv-grid" id="inv-grid"></div>
+    </div>
+
+    <!-- ===== ANALYTICS ===== -->
+    <div id="page-analytics" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">Analytics</h1><p class="page-subtitle">AI-powered business intelligence</p></div>
+        <div class="date-range-btns">
+          <button class="dr-btn active" onclick="setDateRange('7d',this)">7 Days</button>
+          <button class="dr-btn" onclick="setDateRange('30d',this)">30 Days</button>
+          <button class="dr-btn" onclick="setDateRange('90d',this)">Quarter</button>
+        </div>
+      </div>
+
+      <!-- AI Engine Status Banner -->
+      <div class="ai-engine-banner">
+        <div class="ai-engine-left">
+          <div class="ai-engine-icon"><div class="ai-scan-ring"></div><i class="fas fa-brain"></i></div>
+          <div>
+            <div class="ai-engine-name">FreshFold AI <span class="ai-model-tag">v2.1</span></div>
+            <div class="ai-engine-status"><span class="ai-online-dot"></span> Analyzing <span id="ai-data-points">0</span> data points across 6 modules</div>
+          </div>
+        </div>
+        <div class="ai-engine-modules">
+          <div class="ai-mod-pill"><i class="fas fa-check-circle"></i> Revenue</div>
+          <div class="ai-mod-pill"><i class="fas fa-check-circle"></i> Inventory</div>
+          <div class="ai-mod-pill"><i class="fas fa-check-circle"></i> Staff</div>
+          <div class="ai-mod-pill"><i class="fas fa-check-circle"></i> Demand</div>
+          <div class="ai-mod-pill"><i class="fas fa-check-circle"></i> Customer</div>
+          <div class="ai-mod-pill ai-mod-scanning"><i class="fas fa-circle-notch fa-spin"></i> Risk</div>
+        </div>
+        <div class="ai-engine-conf-box">
+          <div class="ai-engine-conf-val" id="analytics-conf">—%</div>
+          <div class="ai-engine-conf-lbl">Avg Confidence</div>
+        </div>
+      </div>
+
+      <!-- Row 1: Revenue Chart + AI Insights -->
+      <div class="analytics-grid">
+        <div class="card card-lg">
+          <div class="card-header"><div class="card-title"><i class="fas fa-chart-bar"></i> Revenue Overview</div><span class="ai-mini-badge"><i class="fas fa-brain"></i> AI Trend</span></div>
+          <div id="bar-chart" class="bar-chart"></div>
+          <div id="revenue-ai-footer"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-brain"></i> AI Insights</div><span class="ai-gen-badge"><i class="fas fa-microchip"></i> Generated</span></div>
+          <div id="analytics-ai-insights"></div>
+        </div>
+      </div>
+
+      <!-- Row 2: Forecast + Service Breakdown -->
+      <div class="analytics-mid-grid">
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-chart-line"></i> Revenue Forecast <span class="forecast-sublabel">Next 7 Days</span></div><span class="ai-mini-badge"><i class="fas fa-brain"></i> Predictive</span></div>
+          <div id="revenue-forecast" style="padding:16px 16px 8px"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-tshirt"></i> Service Breakdown</div><span class="ai-gen-badge"><i class="fas fa-microchip"></i> AI Scored</span></div>
+          <div id="service-breakdown"></div>
+        </div>
+      </div>
+
+      <!-- Row 3: Peak Hours + Anomaly Detection + Top Areas -->
+      <div class="analytics-bottom-grid">
+        <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-clock"></i> Peak Hours</div><span class="ai-mini-badge"><i class="fas fa-brain"></i> Optimised</span></div><div id="peak-hours-chart"></div></div>
+        <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-satellite-dish" style="color:#f59e0b"></i> Anomaly Detection</div><span class="ai-gen-badge live-scan-badge"><span class="live-dot"></span> Live Scan</span></div><div id="anomaly-detection" style="padding:12px"></div></div>
+        <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-map-marker-alt"></i> Top Areas</div></div><div id="top-areas"></div></div>
+      </div>
+
+      <!-- Row 4: Customer Retention + Price Optimizer -->
+      <div class="analytics-two-grid">
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-heart" style="color:#ef4444"></i> Customer Retention AI</div><span class="ai-gen-badge"><i class="fas fa-microchip"></i> Segmented</span></div>
+          <div id="customer-retention-ai" style="padding:16px"></div>
+        </div>
+        <div class="card" id="price-optimizer-card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-tags"></i> AI Price Optimizer</div><span class="ai-mini-badge"><i class="fas fa-brain"></i> Live</span></div>
+          <div id="price-optimizer" style="padding:16px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CUSTOMERS ===== -->
+    <div id="page-customers" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">Customers</h1><p class="page-subtitle" id="cust-summary-label">Loading...</p></div>
+        <div class="page-header-actions">
+          <button class="btn-outline-sm" onclick="openAIModal('customers')"><i class="fas fa-brain"></i> AI Report</button>
+          <button class="btn-primary" onclick="openVoiceInvoice()"><i class="fas fa-microphone"></i> Voice Invoice</button>
+        </div>
+      </div>
+      <div id="ai-cust-banner"></div>
+      <div class="cust-seg-bar">
+        <div class="cust-seg-item" onclick="renderCustomers()"><span class="cust-seg seg-vip">👑 VIP</span></div>
+        <div class="cust-seg-item"><span class="cust-seg seg-loyal">⭐ Loyal</span></div>
+        <div class="cust-seg-item"><span class="cust-seg seg-atrisk">⚠️ At Risk</span></div>
+        <div class="cust-seg-item"><span class="cust-seg seg-new">🌱 New</span></div>
+        <div class="cust-seg-item"><span class="cust-seg seg-regular">✅ Regular</span></div>
+      </div>
+      <div class="cust-grid" id="cust-grid"></div>
+    </div>
+
+    <!-- ===== STAFF ===== -->
+    <div id="page-staff" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">Staff Management</h1><p class="page-subtitle" id="staff-summary-label">Loading...</p></div>
+        <button class="btn-outline-sm" onclick="openAIModal('staff')"><i class="fas fa-brain"></i> AI Team Report</button>
+      </div>
+      <div id="ai-team-banner"></div>
+      <div class="staff-grid" id="staff-grid"></div>
+    </div>
+
+    <!-- ===== AI HUB ===== -->
+    <div id="page-ai" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title"><i class="fas fa-brain" style="color:#6366f1"></i> AI Hub</h1><p class="page-subtitle">Real-time intelligence powered by FreshFold AI</p></div>
+        <button class="btn-primary btn-glow" onclick="generateFullAIReport()"><i class="fas fa-file-alt"></i> Generate Full Report</button>
+      </div>
+      <div class="ai-status-bar">
+        <div class="ai-status-item"><div class="ai-status-dot"></div><span>AI Engine Online</span></div>
+        <div class="ai-status-item"><i class="fas fa-database"></i><span id="ai-records-processed">Scanning...</span></div>
+        <div class="ai-status-item"><i class="fas fa-shield-alt"></i><span>Confidence: <strong id="ai-confidence">—</strong></span></div>
+        <div class="ai-status-item"><i class="fas fa-sync-alt"></i><span id="ai-last-updated">—</span></div>
+      </div>
+      <div class="ai-module-grid" id="ai-module-grid"></div>
+      <div class="card" style="margin-top:20px">
+        <div class="card-header"><div class="card-title"><i class="fas fa-stream"></i> Live AI Observation Feed</div><span class="live-badge"><span class="live-dot"></span>Live</span></div>
+        <div class="ai-feed" id="ai-feed"></div>
+      </div>
+      <div class="card" style="margin-top:20px">
+        <div id="social-ai-section"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Voice Invoice Modal -->
+<div id="voice-invoice-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <div class="ai-badge"><i class="fas fa-microphone"></i> Voice AI Invoice</div>
+      <button class="modal-close" onclick="closeVoiceInvoice()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="vi-mic-area">
+        <button class="vi-mic-btn" id="vi-mic-btn" onclick="toggleVoiceListen()" title="Click to speak">
+          <i class="fas fa-microphone"></i>
+        </button>
+        <div class="vi-status" id="vi-status">Click the mic button or use Demo Mode</div>
+        <div class="vi-transcript" id="vi-transcript"></div>
+      </div>
+      <div id="vi-result"></div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:10px">
+      <button class="btn-outline-sm" style="flex:1;justify-content:center" onclick="demoVoiceInvoice()"><i class="fas fa-play"></i> Demo Mode</button>
+      <button class="btn-outline-sm" style="flex:1;justify-content:center" onclick="openPhotoScan();closeVoiceInvoice()"><i class="fas fa-camera"></i> Photo Scan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Photo Scan Modal -->
+<div id="photo-scan-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <div class="ai-badge"><i class="fas fa-camera"></i> Photo to Invoice</div>
+      <button class="modal-close" onclick="closePhotoScan()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="ps-upload-area" onclick="document.getElementById('ps-file').click()">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <div>Click to upload a photo of clothing items</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px">JPG, PNG — AI will detect items automatically</div>
+        <input type="file" id="ps-file" accept="image/*" style="display:none" onchange="onPhotoSelected(this)"/>
+      </div>
+      <div class="ps-status" id="ps-status">Upload a photo to begin AI scan</div>
+      <div id="ps-result"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline-sm" onclick="simulatePhotoScan('demo.jpg')"><i class="fas fa-play"></i> Demo Scan</button>
+      <button class="btn-refresh-ai" onclick="closePhotoScan()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI Context Debug Sidebar -->
+<div id="debug-sidebar" class="debug-sidebar hidden">
+  <!-- Header -->
+  <div class="debug-header">
+    <div class="debug-title">
+      <i class="fas fa-vial"></i> AI Context Debug
+    </div>
+    <div class="debug-controls">
+      <button class="debug-btn-mini" id="debug-toggle-collapse" onclick="toggleDebugSidebarCollapse()" title="Collapse">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+      <button class="debug-btn-mini" id="debug-close" onclick="toggleDebugSidebar()" title="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="debug-status-bar">
+    <div class="debug-status-indicator" id="debug-telemetry-indicator" title="Telemetry Status">
+      <span class="debug-status-dot" id="debug-status-dot"></span>
+      <span class="debug-status-label" id="debug-status-label">Active</span>
+    </div>
+    <div class="debug-session-id">
+      Session: <span id="debug-session-id" class="debug-mono">—</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="debug-tabs">
+    <button class="debug-tab active" data-tab="context" onclick="switchDebugTab('context')">
+      <i class="fas fa-layer-group"></i> Context
+    </button>
+    <button class="debug-tab" data-tab="accessibility" onclick="switchDebugTab('accessibility')">
+      <i class="fas fa-eye"></i> A11y
+    </button>
+    <button class="debug-tab" data-tab="history" onclick="switchDebugTab('history')">
+      <i class="fas fa-history"></i> History
+    </button>
+    <button class="debug-tab" data-tab="analysis" onclick="switchDebugTab('analysis')">
+      <i class="fas fa-brain"></i> Analysis
+    </button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="debug-content">
+    <!-- Context Tab -->
+    <div class="debug-tab-content active" id="debug-tab-context">
+      <div class="debug-section">
+        <div class="debug-section-title">Application State</div>
+        <div class="debug-data-grid">
+          <div class="debug-data-row">
+            <span class="debug-label">Current Page</span>
+            <span class="debug-value debug-mono" id="debug-page">dashboard</span>
+          </div>
+          <div class="debug-data-row">
+            <span class="debug-label">Current URL</span>
+            <span class="debug-value debug-mono debug-truncate" id="debug-url">file:///</span>
+          </div>
+          <div class="debug-data-row">
+            <span class="debug-label">Active Modal</span>
+            <span class="debug-value debug-mono" id="debug-modal">none</span>
+          </div>
+          <div class="debug-data-row">
+            <span class="debug-label">Update Count</span>
+            <span class="debug-value debug-counter" id="debug-update-count">0</span>
+          </div>
+          <div class="debug-data-row">
+            <span class="debug-label">Snapshots Stored</span>
+            <span class="debug-value debug-counter" id="debug-snapshots-count">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="debug-section">
+        <div class="debug-section-title">Last User Action</div>
+        <div id="debug-last-action" class="debug-last-action">
+          <div class="debug-action-none">No action yet</div>
+        </div>
+      </div>
+
+      <div class="debug-section">
+        <div class="debug-section-title">Visible Errors</div>
+        <div id="debug-errors" class="debug-errors-list">
+          <div class="debug-none">No visible errors</div>
+        </div>
+      </div>
+
+      <div class="debug-section">
+        <button class="debug-btn-primary" onclick="generateDebugSnapshot()">
+          <i class="fas fa-sparkles"></i> Generate AI Snapshot
+        </button>
+      </div>
+    </div>
+
+    <!-- Accessibility Snapshot Tab -->
+    <div class="debug-tab-content" id="debug-tab-accessibility">
+      <div class="debug-section">
+        <div class="debug-section-title">Focused Element</div>
+        <div id="debug-focused-element" class="debug-code-block">
+          <div class="debug-none">No focused element</div>
+        </div>
+      </div>
+      <div class="debug-section">
+        <div class="debug-note">
+          <i class="fas fa-info-circle"></i>
+          <span>Semantic UI snapshots without raw HTML</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Snapshot History Tab -->
+    <div class="debug-tab-content" id="debug-tab-history">
+      <div class="debug-section">
+        <div class="debug-section-title">Event Stream (Latest First)</div>
+        <div id="debug-event-stream" class="debug-event-stream">
+          <div class="debug-none">Waiting for events...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Analysis Tab -->
+    <div class="debug-tab-content" id="debug-tab-analysis">
+      <div class="debug-section">
+        <div class="debug-section-title">AI Context Analysis</div>
+        <div id="debug-ai-analysis" class="debug-ai-analysis">
+          <div class="debug-analysis-loading">
+            <div class="debug-ai-dots"><span></span><span></span><span></span></div>
+            <p>Analyzing context...</p>
+          </div>
+        </div>
+      </div>
+      <div class="debug-section debug-note">
+        <i class="fas fa-lightbulb"></i>
+        <span>AI analysis ready for LangGraph integration</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generated Snapshot Modal -->
+  <div id="debug-snapshot-modal" class="debug-modal hidden">
+    <div class="debug-modal-overlay" onclick="closeDebugSnapshotModal()"></div>
+    <div class="debug-modal-content">
+      <div class="debug-modal-header">
+        <div class="debug-modal-title"><i class="fas fa-sparkles"></i> AI Snapshot</div>
+        <button class="debug-modal-close" onclick="closeDebugSnapshotModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="debug-modal-body">
+        <div class="debug-snapshot-display" id="debug-snapshot-display"></div>
+      </div>
+      <div class="debug-modal-footer">
+        <button class="debug-btn-secondary" onclick="closeDebugSnapshotModal()">Close</button>
+        <button class="debug-btn-primary" onclick="copyDebugSnapshotToClipboard()">
+          <i class="fas fa-copy"></i> Copy to Clipboard
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Debug Sidebar Toggle Button (hidden initially, shown via console) -->
+<button id="debug-toggle-btn" class="debug-toggle-fab hidden" onclick="toggleDebugSidebar()" title="Open Debug Sidebar">
+  <i class="fas fa-flask"></i>
+</button>
+
+<script src="script.js" defer></script>
+<script src="dashboard.js" defer></script>
+
+<!-- AI Tutorial System Scripts (in order) -->
+<script src="ai-system/workflows.js" defer></script>
+<script src="ai-system/context-detector.js" defer></script>
+<script src="ai-system/highlight-system.js" defer></script>
+<script src="ai-system/step-validator.js" defer></script>
+<script src="ai-system/tutorial-controller.js" defer></script>
+<script src="ai-system/ai-chat.js" defer></script>
+<script src="ai-system/init.js" defer></script>
+</body>
+<!-- ═════════════════════════════════════════════════════════════════════════════ -->
+<!-- AI ASSISTANT WIDGET (User-Facing) — Smart Insights & Suggestions             -->
+<!-- Shows intelligent recommendations based on context (production visible)       -->
+<!-- ═════════════════════════════════════════════════════════════════════════════ -->
+<div id="ai-assistant-widget" class="ai-assistant-widget">
+  <!-- Floating button -->
+  <button id="ai-assistant-btn" class="ai-assistant-btn" onclick="toggleAIAssistant()" title="AI Assistant">
+    <i class="fas fa-sparkles"></i>
+    <span class="ai-pulse-dot"></span>
+  </button>
+  
+  <!-- Assistant panel (hidden by default) -->
+  <div id="ai-assistant-panel" class="ai-assistant-panel hidden">
+    <div class="ai-assistant-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-wand-magic-sparkles"></i>
+        <span>AI Assistant</span>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <button class="ai-close-btn" onclick="openConversation()" title="Start conversation" style="background: #8b5cf6; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+          <i class="fas fa-comments"></i>
+        </button>
+        <button class="ai-close-btn" onclick="toggleAIAssistant()"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+    
+    <div class="ai-assistant-content">
+      <div id="ai-assistant-suggestions" class="ai-suggestions-list"></div>
+      <div id="ai-assistant-loading" class="ai-loading-state" style="text-align: center; padding: 20px; color: #94a3b8;">
+        <i class="fas fa-hourglass-half" style="font-size: 20px; opacity: 0.7;"></i>
+        <p style="margin-top: 10px; font-size: 13px;">Analyzing context...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</html>
